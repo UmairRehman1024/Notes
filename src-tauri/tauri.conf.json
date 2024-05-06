@@ -14,15 +14,12 @@
       "all": true,
       "fs": {
         "all": true,
-        
-        
         "scope": ["**"]
-        
       }
     },
     "windows": [
       {
-        "title": "notes",
+        "title": "AI Notes",
         "width": 800,
         "height": 600
       }

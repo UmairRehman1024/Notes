@@ -3,42 +3,74 @@ import { readTextFile, removeFile, writeTextFile } from "@tauri-apps/api/fs";
 import { save } from "@tauri-apps/api/dialog";
 import dayjs from "dayjs";
 
+import { v4 as uuidv4 } from 'uuid';
+
 export interface Note {
+  id: string
   title: string;
   created_at: string;
   location: string;
+  content: string;
+  tags: string[]
+  summary: string
 }
 
+
+
+
+
 export const useNotes = () => {
-  const [notes, setNotes] = useState<Note[]>([]);
-  const [activeNote, setActiveNote] = useState<number>(0);
+
+  // new Map<string, number>
+  const [notes, setNotes] = useState<Map<string, Note>>(new Map<string, Note>);
+
+  // const [notes, setNotes] = useState<{ [id: string]: Note }>({});
+  const [activeNoteId, setActiveNoteId] = useState<string | null>(null);
   const [activeNoteContent, setActiveNoteContent] = useState<string>("");
 
   useEffect(() => {
     const getNotesFromStorage = async () => {
-      const myNotes = JSON.parse(localStorage.getItem("simple_notes_app") || "[]") as Note[];
-      setNotes(myNotes);
+      const storedNotes  = JSON.parse(localStorage.getItem("simple_notes_app") || "[]") as { [id: string]: Note };
+      const notesMap = new Map<string, Note>(Object.entries(storedNotes ));
+      setNotes(notesMap);
     };
 
     getNotesFromStorage();
   }, []);
 
-  const updateNotes = (updatedNotes: Note[]) => {
+  const updateNotes = (updatedNotes: Map<string, Note>) => {
+
+    if (!(updatedNotes instanceof Map)) {
+      console.error("updatedNotes is not a Map object.");
+      return;
+    }
+    const serializedNotes: { [id: string]: Note } = {};
+    updatedNotes.forEach((value, key) => {
+      serializedNotes[key] = value;
+    });
     setNotes(updatedNotes);
-    localStorage.setItem("simple_notes_app", JSON.stringify(updatedNotes));
+    localStorage.setItem("simple_notes_app", JSON.stringify(serializedNotes));
   };
 
-  const deleteNote = async (noteID: number) => {
-    await removeFile(notes[noteID].location);
+  const deleteNote = async (noteID: string) => {
+    if (!notes.has(noteID)) return;
 
-    const updatedNotes = [...notes];
-    updatedNotes.splice(noteID, 1);
-    updateNotes(updatedNotes);
+    const updatedNotes = new Map(notes);
+    const deletedNote = updatedNotes.get(noteID);
+    if (deletedNote) {
+      await removeFile(deletedNote.location);
+      updatedNotes.delete(noteID);
+      updateNotes(updatedNotes);
 
-    if (activeNote >= noteID) {
-      setActiveNote(activeNote >= 1 ? activeNote - 1 : 0);
+      if (activeNoteId === noteID) {
+        setActiveNoteId(null);
+        setActiveNoteContent("");
+      }
     }
   };
+
+
+  
 
   const addNote = async () => {
     try {
@@ -51,16 +83,30 @@ export const useNotes = () => {
 
       if (!filePath) return;
 
-      await writeTextFile({ contents: "Content of note file", path: filePath });
+      console.log(filePath)
+
+      const title = removeTextAfterLastDot(getStringAfterLastBackslash(filePath))  
+
+      const id = uuidv4()
+
+      // await writeTextFile({ contents: "Content of note file", path: filePath });
 
       const myNewNote: Note = {
-        title: "NewNote",
+        id,
+        title,
         created_at: `${dayjs().format("ddd, DD MMMM YYYY")} at ${dayjs().format("hh:mm A")}`,
         location: filePath,
+        content: "",
+        tags : [],
+        summary: ""
       };
 
-      updateNotes([{ ...myNewNote }, ...notes]);
-      setActiveNote(0);
+      const updatedNotes = new Map(notes)
+      updatedNotes.set(id, myNewNote)
+
+      updateNotes(updatedNotes);
+      setActiveNoteId(id);
+      
       setActiveNoteContent("");
 
     } catch (e) {
@@ -68,33 +114,88 @@ export const useNotes = () => {
     }
   };
 
-  const setActiveNoteData = async (index: number) => {
-    setActiveNote(index);
+  const setActiveNoteData = async (id: string) => {
+    setActiveNoteId(id);
+    
 
-    if (notes.length === 0) setActiveNoteContent("");
-    else {
-      try {
-        const contents = await readTextFile(notes[index].location);
-        setActiveNoteContent(contents);
-      } catch (err) {
-        console.error(err);
-      }
+    const activeNote = notes.get(id)
+
+    if (!activeNote) {
+      setActiveNoteContent("");
+      return;
+    }
+
+
+
+    try {
+      const contents = await readTextFile(activeNote.location);
+      setActiveNoteContent(contents);
+    } catch (err) {
+      console.error(err);
     }
   };
 
-  const handleChange = ({ target: { value } }: { target: { value: string } }) => {
-    if (notes.length === 0) return;
-
-    const header = value.split(/\r?\n/)[0];
-    if (notes.length !== 0 && notes[activeNote].title !== header) {
-      notes[activeNote].title = header;
-      updateNotes([...notes]);
-    }
-
+  const handleChange = async ({ target: { value } }: { target: { value: string } }) => {
+    if (!activeNoteId) return;
+  
+    const activeNote = notes.get(activeNoteId);
+    if (!activeNote) return;
+  
+    activeNote.content = value;
+  
+    const updatedNotes = new Map(notes);
+    updatedNotes.set(activeNoteId, activeNote);
+  
+    updateNotes(updatedNotes);
     setActiveNoteContent(value);
-    writeTextFile(notes[activeNote].location, value);
+  
+    try {
+      await writeTextFile(activeNote.location, value);
+    } catch (error) {
+      console.error("Error writing file:", error);
+    }
   };
 
-  return { notes, activeNote, activeNoteContent, deleteNote, addNote, handleChange, setActiveNoteData };
+
+
+  const getAllNotes = async() => {
+    if (notes.size == 0) throw new Error("notes is empty or is being added from storage");
+    let allNotes: string[] = []
+    try {
+      notes.forEach(async (note) => {
+        if (note.id != activeNoteId) 
+        {
+          allNotes.push( await readTextFile(note.location))
+        }
+      })
+    } catch (error) {
+      console.error(error)
+    } finally{
+      return allNotes
+    }
+    
+
+    
+
+  }
+
+
+  function getStringAfterLastBackslash(str: string): string {
+    const lastBackslashIndex = str.lastIndexOf("\\");
+    if (lastBackslashIndex !== -1) {
+        return str.substring(lastBackslashIndex + 1);
+    }
+    return str; // If no backslash is found, return the original string
+  } 
+
+  function removeTextAfterLastDot(str: string): string {
+    const lastDotIndex = str.lastIndexOf(".");
+    if (lastDotIndex !== -1) {
+        return str.substring(0, lastDotIndex);
+    }
+    return str; // If no dot is found, return the original string
+}
+
+  return { notes, updateNotes,  activeNoteId, activeNoteContent, deleteNote, addNote, handleChange, setActiveNoteData, getAllNotes};
 };
 
