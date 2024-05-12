@@ -132,7 +132,7 @@ export const useSimilarNotes = (props : {openai: OpenAI, }) => {
 
     const index = pc.index(index_name);
 
-     await index.upsert([...embeddings])
+    // await index.upsert([...embeddings])
 
     const activeNoteEmbedding = await getVector(props.activeNoteContent)
 
@@ -155,14 +155,14 @@ export const useSimilarNotes = (props : {openai: OpenAI, }) => {
 
   }
 
-  type embeddingResult = {
-    id : string | number
-  }
+  // type embeddingResult = {
+  //   id : string | number
+  // }
 
-  type embedding = {
-    id: string | number,
-    vector: number[]
-  }
+  // type embedding = {
+  //   id: string | number,
+  //   vector: number[]
+  // }
 
 
     async function getVector(text: string) {

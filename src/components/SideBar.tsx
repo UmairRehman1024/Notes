@@ -2,7 +2,7 @@
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { FileText, Plus, Trash } from "@phosphor-icons/react"; // Assuming icons are stored in a separate file
-import { Note, useNotes } from "../hooks/useNotes";
+import { Note} from "../hooks/useNotes";
 
 // Sidebar component
 function Sidebar(props: {addnote: () => Promise<void>, notes:  Map<string, Note>, deleteNote : (noteID: string) => Promise<void>, setActiveNote: (id: string) => Promise<void>}) {

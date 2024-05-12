@@ -1,6 +1,5 @@
 // Import necessary dependencies and icons
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { X } from "@phosphor-icons/react"; // Assuming icons are stored in a separate file
 import { Button } from "@/components/ui/button";
 import { Note } from "src/hooks/useNotes";
@@ -9,7 +8,6 @@ import ClipLoader from "react-spinners/ClipLoader";
 import OpenAI from "openai";
 import { useSummary } from "..//hooks/useSummary";
 import { useTags } from "../hooks/useTags";
-import { notStrictEqual } from "assert";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 // AI Insights component
@@ -32,20 +30,20 @@ function AIInsights(props: {
     useSimilarNotes({ openai });
   const { handleTags, tagsLoading } = useTags();
 
-  const displayTags = () => {
-    if (!props.activeNoteId) return;
-    const activeNote = props.notes.get(props.activeNoteId);
-    if (!activeNote) throw new Error("No note found at active note id");
+  // const displayTags = () => {
+  //   if (!props.activeNoteId) return;
+  //   const activeNote = props.notes.get(props.activeNoteId);
+  //   if (!activeNote) throw new Error("No note found at active note id");
 
-    return (
-      activeNote.tags &&
-      activeNote.tags.map((tag) => (
-        <div className="w-fit px-1 rounded-lg  bg-slate-400 border">
-          <p className="text-center text-sm font-medium">{tag}</p>
-        </div>
-      ))
-    );
-  };
+  //   return (
+  //     activeNote.tags &&
+  //     activeNote.tags.map((tag) => (
+  //       <div className="w-fit px-1 rounded-lg  bg-slate-400 border">
+  //         <p className="text-center text-sm font-medium">{tag}</p>
+  //       </div>
+  //     ))
+  //   );
+  // };
 
   if (!props.activeNoteId)
     return (
