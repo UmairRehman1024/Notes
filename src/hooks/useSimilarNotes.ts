@@ -127,12 +127,15 @@ export const useSimilarNotes = (props : {openai: OpenAI, }) => {
           region: 'us-east-1' 
         }
       } ,
-      suppressConflicts: true
+      suppressConflicts: true,
+      waitUntilReady: true
     }); 
 
     const index = pc.index(index_name);
 
-    // await index.upsert([...embeddings])
+    index.deleteAll()
+    await index.upsert([...embeddings])
+    
 
     const activeNoteEmbedding = await getVector(props.activeNoteContent)
 
