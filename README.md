@@ -1,4 +1,4 @@
-#AI Notes APP
+# AI Notes APP
 
 Make sure node and rust is installed on the device
 
